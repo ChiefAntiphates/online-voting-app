@@ -1,18 +1,26 @@
-from distutils.log import debug
 from flask import Flask, render_template, jsonify
 from flask_socketio import SocketIO
+from dotenv import load_dotenv
+import voting_utils as utils
+import os
 
-
+load_dotenv()
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
-socketio = SocketIO(app, cors_allowed_origins="http://localhost:3000")
+
+
+
+socketio = SocketIO(app, cors_allowed_origins=os.getenv('CLIENT_URL')or"http://localhost:3000")
 
 button_clicks = 0
 
+print("loaded.")
+
 @app.route('/')
 def hello_world():
-    return render_template("index.html")
+    print("I got it!")
+    return ("hello")
 
 
 @app.route('/test')
@@ -29,5 +37,5 @@ def click():
 
 if __name__ == '__main__':
     app.debug=True
-    socketio.run(app)
+    socketio.run(app, host='0.0.0.0', port=os.getenv('SERVER_PORT') or 5000)
 

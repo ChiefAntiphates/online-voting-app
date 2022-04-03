@@ -1,7 +1,7 @@
 import logo from './logo.svg';
 import './App.css';
 import { io } from "socket.io-client";
-import React, {useContext, useEffect, useState} from 'react'
+import React, {useEffect, useState} from 'react'
 
 const SOCKET_BASE = "http://localhost:5000"
 

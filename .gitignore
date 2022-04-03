@@ -16,3 +16,6 @@ venv/
 #Client
 */node_modules
 */build
+
+#Redis dump files
+*.rdb
