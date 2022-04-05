@@ -1,13 +1,15 @@
 services:
-
   server:
     build: ./server
     ports:
       - "5000:5000"
-  
   client:
     build: ./client
     ports:
       - "3000:3000"
     depends_on:
       - server
+  redis:
+    image: 'redis:alpine'
+    ports:
+      - '6379:6379'
