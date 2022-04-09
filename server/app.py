@@ -1,27 +1,57 @@
 from flask import Flask, request, jsonify
 from flask_socketio import SocketIO
 from dotenv import load_dotenv
-import voting_utils as utils
 import os
 import redis
+import voting_utils
 
 load_dotenv()
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
 
-r = redis.Redis(host='localhost', port=6379)
+r = redis.Redis(host=os.getenv('REDIS_DOMAIN') or 'localhost', port=6379)
 
 socketio = SocketIO(
         app, 
-        cors_allowed_origins=os.getenv('CLIENT_URL')or"http://localhost:3000",
+        cors_allowed_origins=os.getenv('CLIENT_URL') or 'http://localhost:3000',
         message_queue='redis://'
     )
 
-button_clicks = 0
+
+
+#TODO: Add route prefix '/api' programatically
 
 
 
+@app.route('/api/new', methods = ['POST'])
+def new_tournament():
+    #TODO: Check that request body can be converted to JSON
+    #TODO: Check that entries exists (maybe move into const)
+    uid = voting_utils.new_tournament(r, request.json['entries'])
+    matchups = voting_utils.generate_matchups(r, uid) #Generate first round of matchups
+    return(jsonify(
+        body=f"New tournament created: {uid}",
+        matchups=matchups
+        )
+    )
+
+@app.route('/api/current_round')
+def get_current_round():
+    #TODO: Check that uid exists
+    current_round = voting_utils.get_current_round(r, request.args.to_dict()['uid'])
+    return(jsonify(body=current_round))
+
+
+'''
+#TODO: Verify one vote per user (IP or cookies)
+@app.route('/api/vote')
+def submit_vote():
+    #TODO: Verify that tournament id and 
+    request.args.to_dict()
+'''
+
+#Example Routes
 @app.route('/')
 def hello_world():
     print("I got it!")
@@ -39,12 +69,16 @@ def my_test():
     socketio.emit('test_topic', 'Success!!!', namespace='/testnp')
     return jsonify(body='This works!'), 200
 
+button_clicks = 0 # Example to be deleted
 @app.route('/click')
 def click():
     global button_clicks
     button_clicks += 1
     socketio.emit('clicked', {"number": button_clicks}, namespace='/button_clicks')
     return jsonify(body="You clicked the button", clicks=button_clicks)
+
+
+
 
 if __name__ == '__main__':
     app.debug=True
