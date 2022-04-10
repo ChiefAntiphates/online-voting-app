@@ -42,8 +42,31 @@ def generate_matchups(r, uid):
     return matchups
 
 def get_current_round(r, uid):
-    current_ref = r.lindex(f"{MATCHUP_LOOKUP}:{uid}", 0).decode()
-    return {
-        "key": current_ref,
-        "round": decode_redis(r.hgetall(current_ref))
-    }
+    return r.lindex(f"{MATCHUP_LOOKUP}:{uid}", 0).decode()
+    
+
+def get_round_details(r, ref):
+    return decode_redis(r.hgetall(ref))
+
+
+def verify_vote(r, uid: str, ref: str, vote: str):
+    current_round = r.lindex(f"{MATCHUP_LOOKUP}:{uid}", 0).decode()
+
+    if not(ref == current_round): # Check if reference is active round
+        return(False, 'Round not currently active.', current_round)
+
+    voting_options = r.hkeys(current_round)
+    
+    if not(vote.encode() in voting_options):
+        return(False, 'Vote not a valid option in current round.', decode_redis(voting_options))
+
+    return(True)
+
+
+def submit_vote(r, uid: str, ref: str, vote: str):
+    valid = verify_vote(r, uid, ref, vote)
+    if not valid[0]:
+        return(valid)
+
+    print(r.hincrby(ref, vote, 1)) #Cast vote
+    return(True, f"Vote cast for {vote}")

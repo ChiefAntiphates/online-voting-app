@@ -1,3 +1,5 @@
+import json
+from lib2to3 import refactor
 from flask import Flask, request, jsonify
 from flask_socketio import SocketIO
 from dotenv import load_dotenv
@@ -39,17 +41,25 @@ def new_tournament():
 @app.route('/api/current_round')
 def get_current_round():
     #TODO: Check that uid exists
-    current_round = voting_utils.get_current_round(r, request.args.to_dict()['uid'])
-    return(jsonify(body=current_round))
+    current_round_ref = voting_utils.get_current_round(r, request.args.to_dict()['uid'])
+    current_round_info = voting_utils.get_round_details(r, current_round_ref)
+    return(jsonify(ref=current_round_ref, info=current_round_info))
 
 
-'''
+
 #TODO: Verify one vote per user (IP or cookies)
-@app.route('/api/vote')
+@app.route('/api/vote', methods = ['POST'])
 def submit_vote():
-    #TODO: Verify that tournament id and 
-    request.args.to_dict()
-'''
+    #TODO: Check that fields exist
+    #TODO: Check that request body can be converted to JSON
+    result = voting_utils.submit_vote(
+        r, 
+        request.json['uid'], 
+        request.json['round'], 
+        request.json['vote']
+    )
+    return(jsonify(result))
+
 
 #Example Routes
 @app.route('/')
