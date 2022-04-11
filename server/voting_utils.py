@@ -42,6 +42,7 @@ def generate_matchups(r, uid):
     return matchups
 
 def get_current_round(r, uid):
+    #TODO: Error handling for if there is no current round
     return r.lindex(f"{MATCHUP_LOOKUP}:{uid}", 0).decode()
     
 
@@ -60,7 +61,7 @@ def verify_vote(r, uid: str, ref: str, vote: str):
     if not(vote.encode() in voting_options):
         return(False, 'Vote not a valid option in current round.', decode_redis(voting_options))
 
-    return(True)
+    return(True, "Valid vote")
 
 
 def submit_vote(r, uid: str, ref: str, vote: str):
@@ -68,5 +69,33 @@ def submit_vote(r, uid: str, ref: str, vote: str):
     if not valid[0]:
         return(valid)
 
-    print(r.hincrby(ref, vote, 1)) #Cast vote
-    return(True, f"Vote cast for {vote}")
+    amount = r.hincrby(ref, vote, 1) #Cast vote
+    return(True, f"Vote cast for {vote} which now has {amount} votes")
+
+def end_round(r, uid: str, ref: str):
+    current_round = get_current_round(r, uid)
+    if not(current_round == ref):
+        return (False, "Round not active", current_round) 
+    
+    results = get_round_details(r, ref)
+    majority = 0
+    winner = None
+    for candidate in results.keys():
+        if int(results[candidate]) > majority:
+            majority = int(results[candidate])
+            winner = candidate
+        elif int(results[candidate]) == majority:
+            winner = None
+    
+    if(winner): #If not a tie
+        results.pop(winner)
+        #Get the loser
+        loser = results.popitem()[0] 
+        #Remove loser from candidates
+        r.srem(f"{CANDIDATES}:{uid}", loser) 
+        #Add loser result
+        r.hset(f"{RESULTS}:{uid}", loser, r.hget(f"{RESULTS}:{uid}", CURRENT_ROUND))
+        #Remove round from list
+        r.lpop(f"{MATCHUP_LOOKUP}:{uid}")
+
+    return (True, f"{winner} wins with {majority} votes", results)

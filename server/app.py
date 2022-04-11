@@ -60,6 +60,15 @@ def submit_vote():
     )
     return(jsonify(result))
 
+#TODO: Introduce automated round end timeouts
+@app.route('/api/end_round')
+def end_round():
+    uid = request.args.to_dict()['uid']
+    ref = request.args.to_dict()['ref']
+    result = voting_utils.end_round(r, uid, ref)
+    if not result[0]:
+        return(jsonify(body=result[1], current_round=result[2]))
+    return(result[1])
 
 #Example Routes
 @app.route('/')
