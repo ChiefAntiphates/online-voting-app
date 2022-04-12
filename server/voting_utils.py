@@ -43,12 +43,21 @@ def generate_matchups(r, uid):
 
 def get_current_round(r, uid):
     #TODO: Error handling for if there is no current round
+    #if r.llen(f"{MATCHUP_LOOKUP}:{uid}") == 0:
     return r.lindex(f"{MATCHUP_LOOKUP}:{uid}", 0).decode()
     
 
 def get_round_details(r, ref):
     return decode_redis(r.hgetall(ref))
 
+
+def get_candidates(r, uid):
+    return [x.decode() for x in list(r.smembers(f"{CANDIDATES}:{uid}"))]
+
+def get_results(r, uid):
+    return decode_redis(r.hgetall(f"{RESULTS}:{uid}"))
+
+#TODO: Get whole bracket at current point
 
 def verify_vote(r, uid: str, ref: str, vote: str):
     current_round = r.lindex(f"{MATCHUP_LOOKUP}:{uid}", 0).decode()
@@ -95,7 +104,16 @@ def end_round(r, uid: str, ref: str):
         r.srem(f"{CANDIDATES}:{uid}", loser) 
         #Add loser result
         r.hset(f"{RESULTS}:{uid}", loser, r.hget(f"{RESULTS}:{uid}", CURRENT_ROUND))
-        #Remove round from list
-        r.lpop(f"{MATCHUP_LOOKUP}:{uid}")
-
+   
+    #Remove round from list
+    r.lpop(f"{MATCHUP_LOOKUP}:{uid}")
+    if r.llen(f"{MATCHUP_LOOKUP}:{uid}") == 0:
+        if len(list(r.smembers(f"{CANDIDATES}:{uid}"))) < 2:
+            print("Winner found")
+            #TODO: Move these bits into function...
+            r.hset(f"{RESULTS}:{uid}", winner, 'Winner')
+            r.srem(IN_USE, uid)
+        else:
+            generate_matchups(r, uid)
+            r.hincrby(f"{RESULTS}:{uid}", CURRENT_ROUND, 1) #Increment round by 1
     return (True, f"{winner} wins with {majority} votes", results)

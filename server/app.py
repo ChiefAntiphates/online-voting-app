@@ -23,7 +23,7 @@ socketio = SocketIO(
 
 
 #TODO: Add route prefix '/api' programatically
-
+#TODO: Check uid exists in many of the routes
 
 
 @app.route('/api/new', methods = ['POST'])
@@ -67,8 +67,22 @@ def end_round():
     ref = request.args.to_dict()['ref']
     result = voting_utils.end_round(r, uid, ref)
     if not result[0]:
-        return(jsonify(body=result[1], current_round=result[2]))
+        return jsonify(body=result[1], current_round=result[2])
     return(result[1])
+
+
+@app.route('/api/candidates')
+def get_candidates():
+    uid = request.args.to_dict()['uid']
+    candidates = voting_utils.get_candidates(r, uid)
+    return jsonify(data=candidates)
+
+
+@app.route('/api/results')
+def get_results():
+    uid = request.args.to_dict()['uid']
+    results = voting_utils.get_results(r, uid)
+    return jsonify(data=results)
 
 #Example Routes
 @app.route('/')
