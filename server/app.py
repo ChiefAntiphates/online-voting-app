@@ -52,12 +52,14 @@ def get_current_round():
 def submit_vote():
     #TODO: Check that fields exist
     #TODO: Check that request body can be converted to JSON
+    uid = request.json['uid']
     result = voting_utils.submit_vote(
         r, 
-        request.json['uid'], 
+        uid, 
         request.json['round'], 
         request.json['vote']
     )
+    socketio.emit('vote_cast', {"results": result}, namespace=f'/{uid}')
     return(jsonify(result))
 
 #TODO: Introduce automated round end timeouts
@@ -66,8 +68,9 @@ def end_round():
     uid = request.args.to_dict()['uid']
     ref = request.args.to_dict()['ref']
     result = voting_utils.end_round(r, uid, ref)
-    if not result[0]:
+    if not result[0]: # If round isn't active, return actual active round
         return jsonify(body=result[1], current_round=result[2])
+    socketio.emit('round_end', {"results": result[1]}, namespace=f'/{uid}')
     return(result[1])
 
 

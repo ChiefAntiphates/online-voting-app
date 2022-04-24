@@ -1,14 +1,13 @@
-import logo from './logo.svg';
-import './App.css';
 import { io } from "socket.io-client";
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import React, {useEffect, useState} from 'react'
+import Voting from "./voting";
 
 const SOCKET_BASE = "http://localhost:5000"
 
 function App() {
 
   const [buttonClicks, setButtonClicks] = useState(0)
-
   useEffect(() => {
     const test_socket = io(`${SOCKET_BASE}/testnp`);
     test_socket.on("test_topic", data => {
@@ -24,20 +23,13 @@ function App() {
   }, [])
 
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <h1>There have been {buttonClicks} button clicks</h1>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <Router>
+        <Routes>
+          <Route exact path='/' element={<h2>Home Page</h2>} />
+          <Route exact path='/vote/:id' element={<Voting />} />
+          <Route exact path='*' element={<h1>No page</h1>} />
+        </Routes>
+    </Router>
   );
 }
 
