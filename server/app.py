@@ -17,9 +17,8 @@ r = redis.Redis(host=os.getenv('REDIS_DOMAIN') or 'localhost', port=6379)
 socketio = SocketIO(
         app, 
         cors_allowed_origins=os.getenv('CLIENT_URL') or 'http://localhost:3000',
-        message_queue='redis://'
+        #message_queue='redis://' # << this breaks the server when a socketio connection is made...
     )
-
 
 
 #TODO: Add route prefix '/api' programatically
