@@ -43,7 +43,8 @@ def get_current_round():
     #TODO: Check that uid exists
     current_round_ref = voting_utils.get_current_round(r, request.args.to_dict()['uid'])
     current_round_info = voting_utils.get_round_details(r, current_round_ref)
-    return(jsonify(ref=current_round_ref, info=current_round_info))
+    total_votes = (sum([int(current_round_info[x]) for x in current_round_info.keys()]))
+    return(jsonify(ref=current_round_ref, scores=current_round_info, votes=total_votes))
 
 
 
@@ -91,14 +92,9 @@ def get_results():
 @app.route('/')
 def hello_world():
     print("I got it!")
-    r.publish("test1", "hello")
+    #r.publish("test1", "hello")
     return ("hello")
 
-@app.route('/set_name')
-def redis_set():
-    args = request.args.to_dict()
-    r.set('name', args['name'])
-    return(f"Set name to {args['name']}.")
 
 @app.route('/test')
 def my_test():

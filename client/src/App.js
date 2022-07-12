@@ -13,13 +13,13 @@ function App() {
     test_socket.on("test_topic", data => {
       console.log(data) 
     })
+    /*
     //socketio.emit('clicked', {"number": button_clicks}, namespace='/button_clicks')
     const button_socket = io(`${SOCKET_BASE}/button_clicks`)
     button_socket.on("clicked", data => {
-      console.log("HELLO")
       console.log(data)
       setButtonClicks(data.number)
-    })
+    })*/
   }, [])
 
   return (
