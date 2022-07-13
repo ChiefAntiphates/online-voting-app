@@ -2,6 +2,8 @@ import json
 from lib2to3 import refactor
 from flask import Flask, request, jsonify
 from flask_socketio import SocketIO
+from flask_cors import CORS, cross_origin
+
 from dotenv import load_dotenv
 import os
 import redis
@@ -10,6 +12,9 @@ import voting_utils
 load_dotenv()
 
 app = Flask(__name__)
+#TODO: Restrict CORS to specific routes
+CORS(app)
+
 app.config['SECRET_KEY'] = 'secret!'
 
 r = redis.Redis(host=os.getenv('REDIS_DOMAIN') or 'localhost', port=6379)
@@ -31,11 +36,14 @@ def new_tournament():
     #TODO: Check that entries exists (maybe move into const)
     uid = voting_utils.new_tournament(r, request.json['entries'])
     matchups = voting_utils.generate_matchups(r, uid) #Generate first round of matchups
+    
     return(jsonify(
         body=f"New tournament created: {uid}",
+        uid=uid,
         matchups=matchups
         )
     )
+
 
 @app.route('/api/current_round')
 def get_current_round():
@@ -59,8 +67,11 @@ def submit_vote():
         request.json['round'], 
         request.json['vote']
     )
-    socketio.emit('vote_cast', {"results": result}, namespace=f'/{uid}')
-    return(jsonify(result))
+    if result[0]:
+        socketio.emit('vote_cast', {"results": result[1]}, namespace=f'/{uid}')
+        return(jsonify(result))
+    else:
+        return("Error!")
 
 #TODO: Introduce automated round end timeouts
 @app.route('/api/end_round')
@@ -70,7 +81,7 @@ def end_round():
     result = voting_utils.end_round(r, uid, ref)
     if not result[0]: # If round isn't active, return actual active round
         return jsonify(body=result[1], current_round=result[2])
-    socketio.emit('round_end', {"results": result[1]}, namespace=f'/{uid}')
+    socketio.emit('round_end', {"results": result[1], "winner": {"overall": result[3], "name": result[2]}}, namespace=f'/{uid}')
     return(result[1])
 
 
@@ -87,28 +98,17 @@ def get_results():
     results = voting_utils.get_results(r, uid)
     return jsonify(data=results)
 
+@app.route('/api/is_active')
+def is_active():
+    active = voting_utils.check_if_active(r, request.args.to_dict()['uid'])
+    return jsonify(active=active)
+    
+
 #Example Routes
 @app.route('/')
 def hello_world():
     print("I got it!")
-    #r.publish("test1", "hello")
     return ("hello")
-
-
-@app.route('/test')
-def my_test():
-    socketio.emit('test_topic', 'Success!!!', namespace='/testnp')
-    return jsonify(body='This works!'), 200
-
-button_clicks = 0 # Example to be deleted
-@app.route('/click')
-def click():
-    global button_clicks
-    button_clicks += 1
-    socketio.emit('clicked', {"number": button_clicks}, namespace='/button_clicks')
-    return jsonify(body="You clicked the button", clicks=button_clicks)
-
-
 
 
 if __name__ == '__main__':
