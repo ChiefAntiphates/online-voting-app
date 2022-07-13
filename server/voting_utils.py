@@ -1,5 +1,5 @@
 import random
-from redis_utils import decode_redis
+from redis_utils import decode_redis, decode_members
 
 IN_USE = 'IDS_IN_USE'
 #Field standard names
@@ -12,14 +12,22 @@ MATCHUP_LOOKUP = 'matchup_lookup'
 
 def new_tournament(r, entries):
     #TODO: Ensure no duplicates in entries
-    #TODO: Ensure no entries are reserved keywords lik CURRENT_ROUND
-    uid = random.randrange(1,pow(2,32-1)) #Create uniqueID
+    #TODO: Ensure no entries are reserved keywords like CURRENT_ROUND
+    uid = random.randrange(1,pow(2,16-1)) #Create uniqueID
     while str(uid).encode() in r.smembers(IN_USE): #Check to see if uniqueID being used
-        uid = random.randrange(1,pow(2,32-1)) #Regenerate if in use
+        uid = random.randrange(1,pow(2,16-1)) #Regenerate if in use
     r.sadd(IN_USE, uid) #Register as being used
     
+    [r.hdel(f"{RESULTS}:{uid}", key) for key in decode_redis(r.hkeys(f"{RESULTS}:{uid}"))]
+    [r.srem(f"{CANDIDATES}:{uid}", mem) for mem in decode_members(r.smembers(f"{CANDIDATES}:{uid}"))]
+
 
     r.hset(f"{RESULTS}:{uid}", CURRENT_ROUND, 1) #Init new results hash with current_round = 0
+    
+    
+    #TODO: Check any leftover data in the chosen uid and delete if present
+    
+
     for entry in entries:
         r.sadd(f"{CANDIDATES}:{uid}", entry) #Add all entries
         #r.hset(f"{RESULTS}:{uid}", entry, 0) #We only need to post result on loss
@@ -28,7 +36,7 @@ def new_tournament(r, entries):
 
 def generate_matchups(r, uid):
     matchups = []
-    candidates = [x.decode() for x in list(r.smembers(f"{CANDIDATES}:{uid}"))]
+    candidates = decode_members(r.smembers(f"{CANDIDATES}:{uid}"))
     while len(candidates) > 1:
         a = random.choice(candidates)
         candidates.remove(a)
@@ -52,7 +60,7 @@ def get_round_details(r, ref):
 
 
 def get_candidates(r, uid):
-    return [x.decode() for x in list(r.smembers(f"{CANDIDATES}:{uid}"))]
+    return decode_members(r.smembers(f"{CANDIDATES}:{uid}"))
 
 def get_results(r, uid):
     return decode_redis(r.hgetall(f"{RESULTS}:{uid}"))
@@ -79,7 +87,7 @@ def submit_vote(r, uid: str, ref: str, vote: str):
         return(valid)
 
     amount = r.hincrby(ref, vote, 1) #Cast vote
-    return(True, f"Vote cast for {vote} which now has {amount} votes")
+    return(True, decode_redis(r.hgetall(ref)))
 
 def end_round(r, uid: str, ref: str):
     current_round = get_current_round(r, uid)
@@ -105,15 +113,24 @@ def end_round(r, uid: str, ref: str):
         #Add loser result
         r.hset(f"{RESULTS}:{uid}", loser, r.hget(f"{RESULTS}:{uid}", CURRENT_ROUND))
    
+    overall_win = False
     #Remove round from list
     r.lpop(f"{MATCHUP_LOOKUP}:{uid}")
     if r.llen(f"{MATCHUP_LOOKUP}:{uid}") == 0:
         if len(list(r.smembers(f"{CANDIDATES}:{uid}"))) < 2:
             print("Winner found")
+            overall_win = True
             #TODO: Move these bits into function...
             r.hset(f"{RESULTS}:{uid}", winner, 'Winner')
             r.srem(IN_USE, uid)
         else:
             generate_matchups(r, uid)
             r.hincrby(f"{RESULTS}:{uid}", CURRENT_ROUND, 1) #Increment round by 1
-    return (True, f"{winner} wins with {majority} votes", results)
+    return (True, results, winner, overall_win)
+
+#Check if the ID is in use to determine if the tournament is active
+def check_if_active(r, uid):
+    if str(uid).encode() in r.smembers(IN_USE):
+        return True
+    else:
+        return False

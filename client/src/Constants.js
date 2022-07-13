@@ -1,0 +1,1 @@
+export const SOCKET_BASE = "http://localhost:5000"

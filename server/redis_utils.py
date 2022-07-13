@@ -15,3 +15,6 @@ def decode_redis(src):
         return src.decode()
     else:
         raise Exception("type not handled: " +type(src))
+
+def decode_members(members):
+    return [x.decode() for x in list(members)]
