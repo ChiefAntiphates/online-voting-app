@@ -22,3 +22,6 @@ venv/
 
 #Local files
 dev/
+
+#.db file
+*.db
