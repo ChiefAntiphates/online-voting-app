@@ -19,10 +19,17 @@ const Voting = props => {
         getCandidates()
         getEliminated()
 
-        checkActive().then(async is_active => {
-            await is_active ? getCurrentRoundDetails() : setActive(false)
-            setLoaded(true)
-        })
+        // checkActive().then(async is_active => {
+        //     await is_active ? getCurrentRoundDetails() : setActive(false)
+        //     setLoaded(true)
+        // })
+
+        getCurrentRoundDetails()
+            .then(() => setLoaded(true))
+            .catch(err => {
+                console.log(err)
+                alert("Error loading round")
+            })
         
 
         const socket = io(`${SOCKET_BASE}/${uid}`);
@@ -92,11 +99,11 @@ const Voting = props => {
         fetch(`http://localhost:5000/api/end_round?uid=${uid}&ref=${currentRoundId}`)
     }
 
-    const checkActive = () => (
-        fetch(`http://localhost:5000/api/is_active?uid=${uid}`)
-            .then(response => response.json())
-            .then(data => data.active)
-    )
+    // const checkActive = () => (
+    //     fetch(`http://localhost:5000/api/is_active?uid=${uid}`)
+    //         .then(response => response.json())
+    //         .then(data => data.active)
+    // )
 
     const formatScores = raw => {
         const keys = Object.keys(raw).sort((a,b)=>{

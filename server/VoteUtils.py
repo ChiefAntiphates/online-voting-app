@@ -81,7 +81,7 @@ class VoteUtils():
         return self.table.get_item(Key={"uid":int(uid)})['Item'][RESULTS]
 
     def verify_vote(self, item: dict, ref: str, vote: str):
-        
+        #Need to do some checking here because its not moving through
         if not(ref == item[CURRENT_MATCHES][-1]): # Check if reference is active round
             return(False, 'Round not currently active.', item[CURRENT_MATCHES][-1])
         
@@ -112,7 +112,7 @@ class VoteUtils():
             }, 
             ReturnValues='ALL_NEW'
         )
-        return(True, response['Attributes'][MATCHUP][ref])
+        return(True, {key: int(value) for key, value in response['Attributes'][MATCHUP][ref].items()})
 
     def end_round(self, uid: str, ref: str):
         item = self.table.get_item(Key={"uid":int(uid)})['Item']
@@ -173,5 +173,5 @@ class VoteUtils():
         pprint(response)
         if len(candidates) > 1 and len(item[CURRENT_MATCHES])-1 == 0:
             self.generate_matchups(int(uid))
-        return (True, response, winner, overall_win)
+        return (True, winner, overall_win)
         

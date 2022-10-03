@@ -92,7 +92,8 @@ def submit_vote():
         request.json['vote']
     )
     if result[0]:
-        socketio.emit('vote_cast', {"results": result[1]}, namespace=f'/{uid}')
+        print(result[1].items())
+        socketio.emit('vote_cast', {"results": {key: int(value) for key, value in result[1].items()}}, namespace=f'/{uid}')
         return(jsonify(result))
     else:
         return("Error!")
@@ -105,7 +106,7 @@ def end_round():
     result = util.end_round(uid, ref)
     if not result[0]: # If round isn't active, return actual active round
         return jsonify(body=result[1], current_round=result[2])
-    socketio.emit('round_end', {"results": result[1], "winner": {"overall": result[3], "name": result[2]}}, namespace=f'/{uid}')
+    socketio.emit('round_end', {"winner": {"overall": result[2], "name": result[1]}}, namespace=f'/{uid}')
     return(jsonify(result))
 
 
