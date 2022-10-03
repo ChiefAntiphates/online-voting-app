@@ -3,6 +3,7 @@ from lib2to3 import refactor
 from flask import Flask, request, jsonify
 from flask_socketio import SocketIO
 from flask_cors import CORS, cross_origin
+from ranking.routes import ranking_api
 
 from dotenv import load_dotenv
 import os
@@ -28,6 +29,8 @@ socketio = SocketIO(
 
 #TODO: Add route prefix '/api' programatically
 #TODO: Check uid exists in many of the routes
+
+app.register_blueprint(ranking_api)
 
 
 @app.route('/api/new', methods = ['POST'])
@@ -109,6 +112,10 @@ def is_active():
 def hello_world():
     print("I got it!")
     return ("hello")
+
+
+
+
 
 
 if __name__ == '__main__':
